@@ -1,0 +1,32 @@
+services:
+  db:
+    image: mysql:latest
+    container_name: chat-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: chat-db
+    ports:
+      - "3307:3306"
+    networks:
+      - chat
+
+  chat-app:
+    image: chat-app
+    container_name: chat-app
+    restart: always
+    environment:
+      MYSQL_HOST: chat-db
+      MYSQL_PORT: 3306
+      MYSQL_DB_NAME: chat-db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    networks:
+      - chat
+
+networks:
+  chat:
