@@ -20,6 +20,8 @@ public class ChatRoom {
     @Column(name = "name")
     private String name;
 
+    @ManyToOne
+    private UserModel admin;
 
     @ManyToMany
     @JoinTable(

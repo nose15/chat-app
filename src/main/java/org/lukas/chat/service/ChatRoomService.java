@@ -1,6 +1,6 @@
 package org.lukas.chat.service;
 
-import org.lukas.chat.exception.ResourceForbiddenException;
+import org.lukas.chat.exception.ForbiddenException;
 import org.lukas.chat.exception.ResourceNotFoundException;
 import org.lukas.chat.model.ChatRoom;
 import org.lukas.chat.model.UserModel;
@@ -23,8 +23,9 @@ public class ChatRoomService {
         this.chatRoomRepository = chatRoomRepository;
     }
 
-    public void createChatRoom(String name, List<UUID> userIds) {
+    public void createChatRoom(String name, List<UUID> userIds, UserModel caller) {
         ChatRoom chatRoom = new ChatRoom();
+        chatRoom.setAdmin(caller);
         chatRoom.setName(name);
         chatRoom.setMembers(userService.getUsersByIds(userIds));
 
@@ -35,11 +36,11 @@ public class ChatRoomService {
         return chatRoomRepository.findAll();
     }
 
-    public List<ChatRoom> getChatRoomsOfUser(UserModel user) {
-        return chatRoomRepository.findChatRoomsByMembersContaining(user);
+    public List<ChatRoom> getChatRoomsOfUser(UserModel caller) {
+        return chatRoomRepository.findChatRoomsByMembersContaining(caller);
     }
 
-    public ChatRoom getChatRoom(UUID id, UserModel user) {
+    public ChatRoom getChatRoom(UUID id, UserModel caller) {
         Optional<ChatRoom> result = chatRoomRepository.findById(id);
 
         if (result.isEmpty()) {
@@ -48,14 +49,62 @@ public class ChatRoomService {
 
         ChatRoom chatRoom = result.get();
 
-        if (user.getRoles().stream().anyMatch(e -> e.getName().equals("ADMIN"))) {
+        if (caller.getRoles().stream().anyMatch(e -> e.getName().equals("ADMIN"))) {
             return chatRoom;
         }
 
-        if (chatRoom.getMembers().stream().noneMatch(e -> e.equals(user))) {
-            throw new ResourceForbiddenException();
+        if (chatRoom.getMembers().stream().noneMatch(e -> e.equals(caller))) {
+            throw new ForbiddenException();
         }
 
         return chatRoom;
+    }
+
+    public void deleteChatRoom(UUID id, UserModel caller) {
+        ChatRoom chatRoom = chatRoomRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("No chatroom with id " + id));
+
+        if (!chatRoom.getAdmin().equals(caller)) {
+            throw new ForbiddenException();
+        }
+
+        chatRoomRepository.deleteById(id);
+    }
+
+    public void addUserToChatRoom(UUID chatId, UUID userId, UserModel caller) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatId).orElseThrow(
+                () -> new ResourceNotFoundException("No chatroom with id " + chatId));
+
+        if (!chatRoom.getAdmin().equals(caller)) {
+            throw new ForbiddenException();
+        }
+
+        List<UserModel> newMembers = chatRoom.getMembers();
+        if (newMembers.stream().anyMatch(e -> e.getId().equals(userId))) {
+            return;
+        }
+
+        UserModel userModel = userService.getById(userId);
+        newMembers.add(userModel);
+        chatRoom.setMembers(newMembers);
+        chatRoomRepository.save(chatRoom);
+    }
+
+    public void removeUserFromChatRoom(UUID chatId, UUID userId, UserModel caller) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatId).orElseThrow(
+                () -> new ResourceNotFoundException("No chatroom with id " + chatId));
+
+        if (!chatRoom.getAdmin().equals(caller)) {
+            throw new ForbiddenException();
+        }
+
+        List<UserModel> newMembers = chatRoom.getMembers();
+        if (newMembers.stream().noneMatch(e -> e.getId().equals(userId))) {
+            throw new ResourceNotFoundException("User with id " + userId + " is not a member of chatroom " + chatId);
+        }
+
+        newMembers.removeIf(e -> e.getId().equals(userId));
+        chatRoom.setMembers(newMembers);
+        chatRoomRepository.save(chatRoom);
     }
 }
