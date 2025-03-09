@@ -1,8 +1,10 @@
 package org.lukas.chat.service;
 
+import org.lukas.chat.exception.ResourceNotFoundException;
 import org.lukas.chat.model.UserModel;
 import org.lukas.chat.repository.UserModelRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedList;
@@ -44,7 +46,11 @@ public class UserService {
         return users;
     }
 
-    public Optional<UserModel> getByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public UserModel getByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No such user"));
+    }
+
+    public UserModel getById(UUID id) {
+        return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("No such user"));
     }
 }

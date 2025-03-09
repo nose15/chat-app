@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/chatrooms")
@@ -38,8 +39,7 @@ public class ChatRoomController {
 
     @GetMapping
     public ResponseEntity<List<ChatRoom>> getChatRooms(Principal principal) {
-        UserModel user = userService.getByEmail(principal.getName())
-                .orElseThrow(() -> new UsernameNotFoundException("No such user"));
+        UserModel user = userService.getByEmail(principal.getName());
 
         if (user.getRoles().stream().anyMatch(e -> e.getName().equals("ADMIN"))) {
              return new ResponseEntity<>(chatRoomService.getAllChatRooms(), HttpStatus.OK);
@@ -48,7 +48,12 @@ public class ChatRoomController {
         }
     }
 
-    // retrieve one chatroom metadata
+    @GetMapping("/{id}")
+    public ResponseEntity<ChatRoom> getChatRoom(@PathVariable UUID id, Principal principal) {
+        UserModel userModel = userService.getByEmail(principal.getName());
+        return new ResponseEntity<>(chatRoomService.getChatRoom(id, userModel), HttpStatus.OK);
+    }
+
     // remove chatroom
 
     // add user to chatroom
