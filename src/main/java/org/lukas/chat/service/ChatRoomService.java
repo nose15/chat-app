@@ -1,5 +1,6 @@
 package org.lukas.chat.service;
 
+import org.lukas.chat.exception.BadRequestException;
 import org.lukas.chat.exception.ForbiddenException;
 import org.lukas.chat.exception.ResourceNotFoundException;
 import org.lukas.chat.model.ChatRoom;
@@ -23,13 +24,23 @@ public class ChatRoomService {
         this.chatRoomRepository = chatRoomRepository;
     }
 
-    public void createChatRoom(String name, List<UUID> userIds, UserModel caller) {
+    public ChatRoom createChatRoom(String name, List<UUID> userIds, UserModel caller) {
+        if (userIds.isEmpty()) {
+            throw new BadRequestException("Add at least one user to the room");
+        }
+
         ChatRoom chatRoom = new ChatRoom();
         chatRoom.setAdmin(caller);
         chatRoom.setName(name);
-        chatRoom.setMembers(userService.getUsersByIds(userIds));
 
-        chatRoomRepository.save(chatRoom);
+        List<UserModel> users = userService.getUsersByIds(userIds);
+        if (users.stream().noneMatch(e -> e.equals(caller))) {
+            users.add(caller);
+        }
+
+        chatRoom.setMembers(users);
+
+        return chatRoomRepository.save(chatRoom);
     }
 
     public List<ChatRoom> getAllChatRooms() {
@@ -60,7 +71,7 @@ public class ChatRoomService {
         return chatRoom;
     }
 
-    public void deleteChatRoom(UUID id, UserModel caller) {
+    public UUID deleteChatRoom(UUID id, UserModel caller) {
         ChatRoom chatRoom = chatRoomRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("No chatroom with id " + id));
 
@@ -69,9 +80,10 @@ public class ChatRoomService {
         }
 
         chatRoomRepository.deleteById(id);
+        return id;
     }
 
-    public void addUserToChatRoom(UUID chatId, UUID userId, UserModel caller) {
+    public ChatRoom addUserToChatRoom(UUID chatId, UUID userId, UserModel caller) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatId).orElseThrow(
                 () -> new ResourceNotFoundException("No chatroom with id " + chatId));
 
@@ -81,16 +93,17 @@ public class ChatRoomService {
 
         List<UserModel> newMembers = chatRoom.getMembers();
         if (newMembers.stream().anyMatch(e -> e.getId().equals(userId))) {
-            return;
+            return chatRoom;
         }
 
         UserModel userModel = userService.getById(userId);
         newMembers.add(userModel);
         chatRoom.setMembers(newMembers);
-        chatRoomRepository.save(chatRoom);
+
+        return chatRoomRepository.save(chatRoom);
     }
 
-    public void removeUserFromChatRoom(UUID chatId, UUID userId, UserModel caller) {
+    public ChatRoom removeUserFromChatRoom(UUID chatId, UUID userId, UserModel caller) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatId).orElseThrow(
                 () -> new ResourceNotFoundException("No chatroom with id " + chatId));
 
@@ -106,5 +119,7 @@ public class ChatRoomService {
         newMembers.removeIf(e -> e.getId().equals(userId));
         chatRoom.setMembers(newMembers);
         chatRoomRepository.save(chatRoom);
+
+        return chatRoom;
     }
 }
