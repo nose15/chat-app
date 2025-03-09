@@ -113,7 +113,7 @@ public class ChatRoomService {
 
         List<UserModel> newMembers = chatRoom.getMembers();
         if (newMembers.stream().noneMatch(e -> e.getId().equals(userId))) {
-            throw new ResourceNotFoundException("User with id " + userId + " is not a member of chatroom " + chatId);
+            return chatRoom;
         }
 
         newMembers.removeIf(e -> e.getId().equals(userId));
