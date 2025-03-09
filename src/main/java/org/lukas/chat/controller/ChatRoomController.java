@@ -1,33 +1,53 @@
 package org.lukas.chat.controller;
 
 import org.lukas.chat.dto.CreateChatRoomRequest;
+import org.lukas.chat.model.ChatRoom;
+import org.lukas.chat.model.UserModel;
 import org.lukas.chat.service.ChatRoomService;
+import org.lukas.chat.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/chatrooms")
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
+    private final UserService userService;
 
     @Autowired
-    public ChatRoomController(ChatRoomService chatRoomService) {
+    public ChatRoomController(ChatRoomService chatRoomService, UserService userService) {
         this.chatRoomService = chatRoomService;
+        this.userService = userService;
     }
 
     @PostMapping
-    private ResponseEntity<Void> createChatroom(@RequestBody CreateChatRoomRequest reqBody) {
+    public ResponseEntity<Void> createChatRoom(@RequestBody CreateChatRoomRequest reqBody) {
         chatRoomService.createChatRoom(reqBody.getName(), reqBody.getUserIds());
 
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    // retrieve all user's chatrooms metadata
+    @GetMapping
+    public ResponseEntity<List<ChatRoom>> getChatRooms(Principal principal) {
+        UserModel user = userService.getByEmail(principal.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("No such user"));
+
+        if (user.getRoles().stream().anyMatch(e -> e.getName().equals("ADMIN"))) {
+             return new ResponseEntity<>(chatRoomService.getAllChatRooms(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(chatRoomService.getChatRoomsOfUser(user), HttpStatus.OK);
+        }
+    }
+
     // retrieve one chatroom metadata
     // remove chatroom
 

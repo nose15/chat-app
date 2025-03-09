@@ -3,6 +3,8 @@ package org.lukas.chat.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +20,13 @@ public class ChatRoom {
     @Column(name = "name")
     private String name;
 
+
     @ManyToMany
-    @JoinTable(name = "user_room")
+    @JoinTable(
+            name = "chatroom_users",
+            joinColumns = @JoinColumn(name = "chatroom_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<UserModel> members;
 }

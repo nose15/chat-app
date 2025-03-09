@@ -1,6 +1,7 @@
 package org.lukas.chat.service;
 
 import org.lukas.chat.model.ChatRoom;
+import org.lukas.chat.model.UserModel;
 import org.lukas.chat.repository.ChatRoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,11 +11,11 @@ import java.util.UUID;
 
 @Service
 public class ChatRoomService {
-    private final UserModelService userService;
+    private final UserService userService;
     private final ChatRoomRepository chatRoomRepository;
 
     @Autowired
-    public ChatRoomService(UserModelService userService, ChatRoomRepository chatRoomRepository) {
+    public ChatRoomService(UserService userService, ChatRoomRepository chatRoomRepository) {
         this.userService = userService;
         this.chatRoomRepository = chatRoomRepository;
     }
@@ -25,5 +26,13 @@ public class ChatRoomService {
         chatRoom.setMembers(userService.getUsersByIds(userIds));
 
         chatRoomRepository.save(chatRoom);
+    }
+
+    public List<ChatRoom> getAllChatRooms() {
+        return chatRoomRepository.findAll();
+    }
+
+    public List<ChatRoom> getChatRoomsOfUser(UserModel user) {
+        return chatRoomRepository.findChatRoomsByMembersContaining(user);
     }
 }
