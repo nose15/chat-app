@@ -1,9 +1,6 @@
 package org.lukas.chat.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,7 +12,11 @@ import java.util.UUID;
 @Setter
 public class ChatRoom {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "name")
+    private String name;
 
     @ManyToMany
     @JoinTable(name = "user_room")
